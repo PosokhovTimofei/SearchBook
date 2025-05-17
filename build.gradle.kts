@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.searchbook"
+    namespace = "com.example.searcbook"
     compileSdk = 35
 
     defaultConfig {
@@ -27,20 +27,23 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
     }
 }
 
 dependencies {
-
+    // Основные зависимости
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -49,6 +52,41 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.navigation.compose)
+    // Compose libraries
+    implementation (libs.androidx.ui.v150)
+    implementation (libs.androidx.material3.v110)
+    implementation (libs.androidx.navigation.compose.v250)
+
+    // Lifecycle libraries for LiveData
+    implementation (libs.androidx.lifecycle.runtime.ktx.v250)
+    implementation (libs.androidx.lifecycle.viewmodel.compose.v250)
+
+    // Coil for image loading
+    implementation (libs.coil.compose.v220)
+
+    // UI
+    implementation(libs.material3)
+    implementation(libs.coil.compose)
+
+    // Retrofit + GSON + Scalars + Logging
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.converter.scalars)
+    implementation(libs.logging.interceptor)
+
+    // Корутины
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Lifecycle
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+
+    implementation (libs.androidx.runtime.livedata)
+    implementation(libs.coil.compose)
+
+
+    // Тесты
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
