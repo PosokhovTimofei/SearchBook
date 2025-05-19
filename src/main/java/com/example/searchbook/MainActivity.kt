@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -30,14 +31,19 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
+import androidx.compose.material.TextButton
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -737,10 +743,7 @@ fun BookDetailsScreen(
     }
 
     if (isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
     } else {
@@ -749,103 +752,129 @@ fun BookDetailsScreen(
                 "https://covers.openlibrary.org/b/id/$id-L.jpg"
             }
 
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .background(Color.Black)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()) // Вот здесь добавлена прокрутка
             ) {
-                item {
-                    coverUrl?.let { url ->
-                        Image(
-                            painter = rememberAsyncImagePainter(url),
-                            contentDescription = "Обложка книги",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(250.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                        )
-                    }
-                }
-
-                item {
-                    Text(
-                        text = it.title ?: "Без названия",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
+                // Обложка
+                coverUrl?.let { url ->
+                    Image(
+                        painter = rememberAsyncImagePainter(url),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.DarkGray)
                     )
                 }
 
-                item { Divider() }
+                Spacer(modifier = Modifier.height(12.dp))
 
-                item {
-                    val allSubjects = listOfNotNull(
-                        it.subject_places,
-                        it.subject_people,
-                        it.subject_times,
-                        it.subjects
-                    ).flatten()
-
-                    val subjectsText = if (allSubjects.isNotEmpty()) {
-                        allSubjects.joinToString(", ")
-                    } else {
-                        "нет данных"
-                    }
-
-                    Text(
-                        text = "Темы: $subjectsText",
-                        style = MaterialTheme.typography.bodyMedium
+                // Название
+                Text(
+                    text = it.title ?: "Без названия",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
-                }
+                )
 
-                item {
-                    Column {
-                        Text(
-                            text = "Описание",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = translatedDescription ?: "Перевод загружается...",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                // Автор
+                Text(
+                    text = it.authors?.joinToString(", ") ?: "Автор неизвестен",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.LightGray)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Переключатели "Текст"/"Аудио"
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.DarkGray),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    TextButton(onClick = { /* Текст */ }) {
+                        Icon(Icons.Default.Description, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Текст", color = Color.White)
+                    }
+                    TextButton(onClick = { /* Аудио */ }) {
+                        Icon(Icons.Default.Headset, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Аудио", color = Color.White)
                     }
                 }
 
-                item { Divider() }
+                Spacer(modifier = Modifier.height(8.dp))
 
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "Год публикации: неизвестен",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Языки: неизвестны",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                // Описание
+                Text(
+                    text = translatedDescription ?: "Описание загружается...",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Статистика
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem("181", "Страница")
+                    StatItem("57.2K", "Читают")
+                    StatItem("58.9K", "Цитат")
+                    StatItem("2.5K", "Впечатления")
+                    StatItem("154", "Полки")
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Кнопки Читать / Слушать
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.DarkGray),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Button(
-                        onClick = { /* Действие */ },
-                        modifier = Modifier.fillMaxWidth()
+                        onClick = { /* Читать */ },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
                     ) {
-                        Text("Читать")
+                        Text("Читать", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Button(
+                        onClick = { /* Слушать */ },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                    ) {
+                        Text("Слушать", color = Color.White)
                     }
                 }
             }
-        } ?: Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Информация о книге не найдена")
+        } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Информация о книге не найдена", color = Color.White)
         }
     }
 }
+
+@Composable
+fun StatItem(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = value, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(text = label, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+
 
 
 

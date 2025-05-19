@@ -8,18 +8,43 @@ data class BookDoc(
     val first_publish_year: Int?,
     val language: List<String>?,
     val cover_i: Int?,
-    val key: String?
+    val key: String?,
+    val isbn: List<String>? = null // Новый параметр для ISBN
 )
 
-
+// Детальная информация о книге (из works/OLxxxx.json)
 data class BookDetails(
     val title: String?,
-    val description: Any?, // Может быть строка или объект
+    val description: Any?,
     val covers: List<Int>?,
     val subject_places: List<String>?,
     val subject_people: List<String>?,
     val subject_times: List<String>?,
-    val subjects: List<String>?
+    val subjects: List<String>?,
+    val excerpts: List<Excerpt>? = null,
+    val links: List<Link>? = null,
+    val authors: List<AuthorWrapper>? = null  // Меняем тип здесь
+)
+
+// Обёртка для автора, как в JSON
+data class AuthorWrapper(
+    val author: Author?
+)
+
+// Собственно автор с ключом (и возможно другими полями)
+data class Author(
+    val key: String?
+)
+
+
+data class Excerpt(
+    val excerpt: String?,
+    val comment: String?
+)
+
+data class Link(
+    val title: String?,
+    val url: String?
 )
 
 
