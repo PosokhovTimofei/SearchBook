@@ -1,7 +1,7 @@
 package com.example.searchbook
 
 data class BookResponse(
-    val items: List<Book>
+    val items: List<Book>?
 )
 
 data class Book(
@@ -16,6 +16,8 @@ data class VolumeInfo(
 )
 
 data class ImageLinks(
-    val thumbnail: String
+    val smallThumbnail: String? = null,
+    val thumbnail: String? = null
 )
+
 

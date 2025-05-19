@@ -662,10 +662,13 @@ fun BookCard(book: Book) {
     ) {
         Row(modifier = Modifier.padding(8.dp)) {
             val imageUrl = book.volumeInfo.imageLinks?.thumbnail
+                ?: book.volumeInfo.imageLinks?.smallThumbnail
 
-            if (!imageUrl.isNullOrEmpty()) {
+            val secureUrl = imageUrl?.replace("http://", "https://")
+
+            if (!secureUrl.isNullOrEmpty()) {
                 AsyncImage(
-                    model = imageUrl,
+                    model = secureUrl,
                     contentDescription = book.volumeInfo.title,
                     modifier = Modifier
                         .size(80.dp)
@@ -696,6 +699,8 @@ fun BookCard(book: Book) {
         }
     }
 }
+
+
 
 
 
