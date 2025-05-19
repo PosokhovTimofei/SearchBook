@@ -1,40 +1,20 @@
 package com.example.searchbook
 
-import com.example.searchbook.ui.theme.SearchBookTheme
 
-
+import BookDoc
 import android.os.Bundle
-import android.text.Html
 import android.util.Log
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -43,34 +23,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Divider
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Lock
-
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -79,48 +56,30 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import coil.compose.AsyncImage
-
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CardDefaults
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.text.style.TextAlign
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.*
+import coil.compose.rememberAsyncImagePainter
 import com.example.searcbook.R
+import com.example.searchbook.ui.theme.SearchBookTheme
 
 
 class MainActivity : ComponentActivity() {
@@ -140,25 +99,48 @@ fun Navigation() {
     val authViewModel: AuthViewModel = viewModel()
     val booksViewModel: BooksViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = "greeting") {
-        composable("greeting") {
-            GreetingScreen(navController)
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(navController)
         }
-        composable("login") {
-            LoginScreen(navController, authViewModel)
-        }
-        composable("register") {
-            RegisterScreen(navController, authViewModel)
-        }
-        composable("search") {
-            SearchScreen(navController)
-        }
-        composable("booksList/{category}") { backStackEntry ->
-            val category = backStackEntry.arguments?.getString("category") ?: ""
-            BooksListScreen(category, booksViewModel, navController)
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = "greeting",
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable("greeting") {
+                GreetingScreen(navController)
+            }
+            composable("login") {
+                LoginScreen(navController, authViewModel)
+            }
+            composable("register") {
+                RegisterScreen(navController, authViewModel)
+            }
+            composable("search") {
+                SearchScreen(navController)
+            }
+            composable("booksList/{category}") { backStackEntry ->
+                val category = backStackEntry.arguments?.getString("category") ?: ""
+                BooksListScreen(category, booksViewModel, navController)
+            }
+            composable("my_books") {
+                MyBooksScreen(navController)
+            }
+            composable("profile") {
+                ProfileScreen(navController)
+            }
+            composable("details/{workId}") { backStackEntry ->
+                val workId = backStackEntry.arguments?.getString("workId") ?: ""
+                BookDetailsScreen(workId = workId, navController = navController)
+            }
         }
     }
 }
+
+
+
 
 
 
@@ -646,56 +628,221 @@ fun BooksListScreen(category: String, viewModel: BooksViewModel, navController: 
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(books) { book ->
-                    BookCard(book)
+                    BookCard(book, navController)
                 }
             }
         }
     }
 }
 
+
 @Composable
-fun BookCard(book: Book) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(4.dp),
-        shape = RoundedCornerShape(8.dp)
+fun BookCard(book: BookDoc, navController: NavController) {
+    val coverUrl = book.cover_i?.let {
+        "https://covers.openlibrary.org/b/id/$it-L.jpg"
+    }
+
+    // Переход по нажатию
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                // Используем ключ work_id, либо заглушку, если его нет
+                val workId = book.key?.removePrefix("/works/") ?: return@clickable
+                navController.navigate("details/$workId")
+            }
+            .padding(8.dp)
     ) {
-        Row(modifier = Modifier.padding(8.dp)) {
-            val imageUrl = book.volumeInfo.imageLinks?.thumbnail
-                ?: book.volumeInfo.imageLinks?.smallThumbnail
+        if (coverUrl != null) {
+            Image(
+                painter = rememberAsyncImagePainter(coverUrl),
+                contentDescription = "Обложка книги",
+                modifier = Modifier
+                    .size(100.dp)
+                    .padding(end = 8.dp)
+            )
+        }
 
-            val secureUrl = imageUrl?.replace("http://", "https://")
+        Column {
+            Text(text = book.title ?: "Нет названия", style = MaterialTheme.typography.titleMedium)
+            Text(text = book.author_name?.joinToString(", ") ?: "Автор неизвестен", style = MaterialTheme.typography.bodySmall)
+            book.first_publish_year?.let {
+                Text(text = "Год: $it", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
 
-            if (!secureUrl.isNullOrEmpty()) {
-                AsyncImage(
-                    model = secureUrl,
-                    contentDescription = book.volumeInfo.title,
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .background(Color.LightGray),
-                    contentAlignment = Alignment.Center
-                ) {
+
+
+
+
+@Composable
+fun BottomNavigationBar(navController: NavController) {
+    val items = listOf(
+        BottomNavItem("Мои книги", "my_books", Icons.Default.Book),
+        BottomNavItem("Поиск", "search", Icons.Default.Search),
+        BottomNavItem("Профиль", "profile", Icons.Default.Person)
+    )
+
+    NavigationBar {
+        val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
+
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = { Icon(item.icon, contentDescription = item.title) },
+                label = { Text(item.title) },
+                selected = currentDestination == item.route,
+                onClick = {
+                    if (currentDestination != item.route) {
+                        navController.navigate(item.route) {
+                            popUpTo("search") { inclusive = false } // базовый маршрут
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+
+@Composable
+fun MyBooksScreen(navController: NavController) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Мои книги")
+    }
+}
+
+@Composable
+fun ProfileScreen(navController: NavController) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Профиль")
+    }
+}
+
+
+@Composable
+fun BookDetailsScreen(
+    workId: String,
+    viewModel: BookDetailsViewModel = viewModel(),
+    navController: NavHostController
+) {
+    val book = viewModel.bookDetails
+    val isLoading = viewModel.isLoading
+    val translatedDescription = viewModel.translatedDescription
+
+    LaunchedEffect(workId) {
+        viewModel.loadBookDetails(workId)
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        book?.let {
+            val coverUrl = it.covers?.firstOrNull()?.let { id ->
+                "https://covers.openlibrary.org/b/id/$id-L.jpg"
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    coverUrl?.let { url ->
+                        Image(
+                            painter = rememberAsyncImagePainter(url),
+                            contentDescription = "Обложка книги",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(250.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                    }
+                }
+
+                item {
                     Text(
-                        "Нет\nобложки",
-                        textAlign = TextAlign.Center,
-                        fontSize = 12.sp,
-                        color = Color.DarkGray
+                        text = it.title ?: "Без названия",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.width(8.dp))
+                item { Divider() }
 
-            Column {
-                Text(book.volumeInfo.title, style = MaterialTheme.typography.titleMedium)
-                Text(book.volumeInfo.authors?.joinToString(", ") ?: "Автор неизвестен")
+                item {
+                    val allSubjects = listOfNotNull(
+                        it.subject_places,
+                        it.subject_people,
+                        it.subject_times,
+                        it.subjects
+                    ).flatten()
+
+                    val subjectsText = if (allSubjects.isNotEmpty()) {
+                        allSubjects.joinToString(", ")
+                    } else {
+                        "нет данных"
+                    }
+
+                    Text(
+                        text = "Темы: $subjectsText",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                item {
+                    Column {
+                        Text(
+                            text = "Описание",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = translatedDescription ?: "Перевод загружается...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
+                item { Divider() }
+
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Год публикации: неизвестен",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "Языки: неизвестны",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { /* Действие */ },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Читать")
+                    }
+                }
             }
+        } ?: Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Информация о книге не найдена")
         }
     }
 }

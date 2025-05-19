@@ -85,6 +85,19 @@ dependencies {
     implementation (libs.androidx.runtime.livedata)
     implementation(libs.coil.compose)
 
+    implementation (libs.androidx.navigation.compose.v277)
+    implementation (libs.androidx.material)
+    implementation (libs.androidx.lifecycle.viewmodel.compose.v270)
+
+    implementation(libs.androidx.material3.v120)
+    implementation(libs.androidx.material.icons.extended)
+
+    implementation(libs.coil.compose)
+
+    implementation (libs.translate)
+
+
+
 
     // Тесты
     testImplementation(libs.junit)
