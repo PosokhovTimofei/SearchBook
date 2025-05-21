@@ -47,20 +47,16 @@ class BooksViewModel : ViewModel() {
             isLoading = true
             try {
                 val response = OpenLibraryClient.api.searchBooks(query = category)
+                val favoriteBooks = repository.getFavorites(userId = 1) // Загружаем избранное
+
                 _books.clear()
-                response.docs?.let { docs ->
-                    val filtered = docs.filter { it.language?.contains("rus") == true }
-
-                    val translatedBooks = filtered.map { book ->
-                        // Используем кэшированный перевод
-                        val translatedTitle = translateTextCached(book.title ?: "")
-                        book.copy(translatedTitle = translatedTitle)
-                    }
-
-                    _books.addAll(translatedBooks)
+                response.docs?.filter { it.language?.contains("rus") == true }?.forEach { book ->
+                    // Проверяем, есть ли книга в избранном
+                    val isFavorite = favoriteBooks.any { favorite -> favorite.key == book.key }
+                    _books.add(book.copy(isFavorite = isFavorite))
                 }
             } catch (e: Exception) {
-                Log.e("BooksViewModel", "Error fetching books", e)
+                Log.e("BooksViewModel", "Ошибка загрузки книг", e)
             } finally {
                 isLoading = false
             }
@@ -183,8 +179,11 @@ class BooksViewModel : ViewModel() {
             isLoading = true
             try {
                 val booksFromDb = repository.getFavorites(userId)
+                val markedFavorites = booksFromDb.map { it.copy(isFavorite = true) }
+
                 _favoriteBooks.clear()
-                _favoriteBooks.addAll(booksFromDb)
+                _favoriteBooks.addAll(markedFavorites)
+
 
                 // Обновляем _books — если книга есть в favorites, ставим isFavorite = true
                 val updatedBooks = _books.map { book ->
@@ -209,45 +208,92 @@ class BooksViewModel : ViewModel() {
     fun toggleFavorite(book: BookDoc) {
         viewModelScope.launch {
             try {
-                val updatedBook = book.copy(isFavorite = !book.isFavorite)
+                // Проверяем текущее состояние книги в списке _favoriteBooks
+                val isCurrentlyFavorite = _favoriteBooks.any { it.key == book.key }
+                val shouldAddToFavorites = !isCurrentlyFavorite
 
-                if (updatedBook.isFavorite) {
+                val updatedBook = book.copy(isFavorite = shouldAddToFavorites)
+
+                val success = if (shouldAddToFavorites) {
                     repository.addToFavorites(updatedBook, 1)
-                    _favoriteBooks.add(updatedBook)
                 } else {
                     repository.removeFromFavorites(updatedBook, 1)
-                    _favoriteBooks.removeAll { it.key == updatedBook.key }
                 }
 
-                val index = _books.indexOfFirst { it.key == book.key }
-                if (index != -1) {
-                    _books[index] = updatedBook
+                if (success) {
+                    // Обновляем _books
+                    val index = _books.indexOfFirst { it.key == book.key }
+                    if (index != -1) {
+                        _books[index] = updatedBook
+                    }
+
+                    // Обновляем _favoriteBooks
+                    if (shouldAddToFavorites) {
+                        _favoriteBooks.add(updatedBook)
+                    } else {
+                        _favoriteBooks.removeAll { it.key == book.key }
+                    }
+
+                    // Принудительно обновляем список, чтобы триггерить Compose
+                    _favoriteBooks.toList().also {
+                        _favoriteBooks.clear()
+                        _favoriteBooks.addAll(it)
+                    }
+
+                } else {
+                    Log.e("BooksViewModel", "Ошибка обновления избранного на сервере")
                 }
             } catch (e: Exception) {
                 Log.e("BooksViewModel", "Ошибка при обновлении избранного", e)
             }
         }
     }
-}
+
+
+
 
     class FavoritesRepository {
         private val api = BackendClient.api
 
         suspend fun getFavorites(userId: Int): List<BookDoc> {
-            return api.getFavoriteBooks(userId)
+            return try {
+                api.getFavoriteBooks(userId).also {
+                    Log.d("FavoritesRepo", "Got favorites: ${it.size} books")
+                }
+            } catch (e: Exception) {
+                Log.e("FavoritesRepo", "Error getting favorites", e)
+                emptyList()
+            }
         }
 
-
-        suspend fun addToFavorites(book: BookDoc, userId: Int) {
-            val request = book.toRequest(userId)
-            api.addToFavorites(request)
+        suspend fun addToFavorites(book: BookDoc, userId: Int): Boolean {
+            return try {
+                val response = api.addToFavorites(book.toRequest(userId))
+                response.isSuccessful.also {
+                    if (it) Log.d("FavoritesRepo", "Added to favorites: ${book.key}")
+                    else Log.e("FavoritesRepo", "Failed to add: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("FavoritesRepo", "Error adding to favorites", e)
+                false
+            }
         }
 
-        suspend fun removeFromFavorites(book: BookDoc, userId: Int) {
-            val request = book.toRequest(userId)
-            api.removeFromFavorites(request)
+        suspend fun removeFromFavorites(book: BookDoc, userId: Int): Boolean {
+            return try {
+                val response = api.removeFromFavorites(book.toRequest(userId))
+                response.isSuccessful.also {
+                    if (it) Log.d("FavoritesRepo", "Removed from favorites: ${book.key}")
+                    else Log.e("FavoritesRepo", "Failed to remove: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("FavoritesRepo", "Error removing from favorites", e)
+                false
+            }
         }
     }
+
+}
 
 
     fun BookDoc.toRequest(userId: Int): FavoriteBookRequest {
@@ -265,4 +311,6 @@ class BooksViewModel : ViewModel() {
             ApiService.create()
         }
     }
+
+
 

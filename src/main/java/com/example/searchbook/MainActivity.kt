@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -799,7 +800,11 @@ fun BooksListScreen(
 
 
 @Composable
-fun BookCard(book: BookDoc, navController: NavController, onFavoriteClick: (BookDoc) -> Unit) {
+fun BookCard(
+    book: BookDoc,
+    navController: NavController,
+    onFavoriteClick: (BookDoc) -> Unit
+) {
     val coverUrl = book.cover_i?.let {
         "https://covers.openlibrary.org/b/id/$it-L.jpg"
     }
@@ -852,7 +857,11 @@ fun BookCard(book: BookDoc, navController: NavController, onFavoriteClick: (Book
             }
         }
 
-        IconButton(onClick = { onFavoriteClick(book) }) {
+        IconButton(
+            onClick = {
+                onFavoriteClick(book)
+            }
+        ) {
             Icon(
                 imageVector = Icons.Default.Favorite,
                 contentDescription = "В избранное",
@@ -862,16 +871,15 @@ fun BookCard(book: BookDoc, navController: NavController, onFavoriteClick: (Book
     }
 }
 
+
+
 @Composable
 fun MyBooksScreen(
     booksViewModel: BooksViewModel = viewModel(),
     navController: NavController
 ) {
-    // Используем snapshotFlow, чтобы Compose следил за изменениями списка
-    val favoriteBooks by remember {
-        derivedStateOf { booksViewModel.favoriteBooks }
-    }
-
+    // Используем derivedStateOf с by, чтобы Compose отслеживал изменения favoriteBooks
+    val favoriteBooks by remember { derivedStateOf { booksViewModel.favoriteBooks } }
     val isLoading by remember { derivedStateOf { booksViewModel.isLoading } }
 
     LaunchedEffect(Unit) {
@@ -892,18 +900,21 @@ fun MyBooksScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(16.dp)
         ) {
-            items(favoriteBooks) { book ->
-                BookCard(book = book, navController = navController, onFavoriteClick = {
-                    booksViewModel.toggleFavorite(it)
-                })
+            items(
+                items = favoriteBooks,
+                key = { it.key ?: it.title ?: it.hashCode().toString() }
+            ) { book ->
+                BookCard(
+                    book = book,
+                    navController = navController,
+                    onFavoriteClick = { clickedBook ->
+                        booksViewModel.toggleFavorite(clickedBook)
+                    }
+                )
             }
         }
     }
 }
-
-
-
-
 
 
 

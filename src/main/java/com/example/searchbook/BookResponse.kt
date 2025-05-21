@@ -58,7 +58,7 @@ data class FavoriteBookRequest(
     val key: String,
     val title: String?,
     val author: String?,
-    val coverId: Int?,  // если нужно, иначе убери
+    val coverId: Int?,
     val userId: Int
 )
 
