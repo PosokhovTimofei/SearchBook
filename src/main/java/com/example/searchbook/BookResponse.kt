@@ -25,7 +25,7 @@ data class BookDetails(
     val subjects: List<String>?,
     val excerpts: List<Excerpt>? = null,
     val links: List<Link>? = null,
-    val authors: List<AuthorWrapper>? = null  // Меняем тип здесь
+    val authors: List<AuthorWrapper>? = null
 )
 
 // Обёртка для автора, как в JSON

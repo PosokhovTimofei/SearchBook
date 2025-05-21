@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -88,6 +89,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.searcbook.R
 import com.example.searchbook.BooksViewModel.BookDetailsViewModel
 import com.example.searchbook.ui.theme.SearchBookTheme
+import kotlinx.coroutines.delay
 
 
 class MainActivity : ComponentActivity() {
@@ -150,8 +152,10 @@ fun Navigation() {
                 RegisterScreen(navController, authViewModel)
             }
             composable("search") {
-                SearchScreen(navController)
+                val booksViewModel: BooksViewModel = viewModel()
+                SearchScreen(navController, booksViewModel)
             }
+
             composable("booksList/{category}") { backStackEntry ->
                 val category = backStackEntry.arguments?.getString("category") ?: ""
                 BooksListScreen(category, booksViewModel, navController)
@@ -212,7 +216,7 @@ fun GreetingScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Поиск рецептов",
+                "Поиск книг",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontFamily = lobsterFont
                 ),
@@ -591,30 +595,122 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel) {
 
 
 @Composable
-fun SearchScreen(navController: NavController) {
+fun SearchScreen(
+    navController: NavController,
+    booksViewModel: BooksViewModel
+) {
+    var searchQuery by remember { mutableStateOf("") }
+
     val categories = listOf(
         "Fiction", "Science", "History", "Art", "Fantasy", "Technology", "Education"
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text("Выберите категорию", style = MaterialTheme.typography.headlineSmall)
+    LaunchedEffect(searchQuery) {
+        delay(300) // debounce 300мс
+        if (searchQuery.isNotBlank()) {
+            booksViewModel.searchBooks(searchQuery)
+        }
+    }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(categories) { category ->
-                CategoryCard(category) {
-                    navController.navigate("booksList/$category") // ✅ исправленный маршрут
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.background),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Scaffold(
+            containerColor = Color.Transparent
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(16.dp)
+                    .fillMaxSize()
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Поиск книг...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = { /* TODO: фильтры */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(4.dp)
+                ) {
+                    Icon(Icons.Default.Tune, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Все фильтры")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (searchQuery.isNotBlank()) {
+                    when {
+                        booksViewModel.isLoading -> {
+                            LoadingIndicator()
+                        }
+                        booksViewModel.books.isEmpty() -> {
+                            EmptyResults()
+                        }
+                        else -> {
+                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(booksViewModel.books) { book ->
+                                    BookCard(book, navController)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        "Выберите категорию",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(categories) { category ->
+                            CategoryCard(category) {
+                                navController.navigate("booksList/$category")
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+
+@Composable
+private fun LoadingIndicator() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun EmptyResults() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Ничего не найдено", style = MaterialTheme.typography.bodyLarge)
     }
 }
 
