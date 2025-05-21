@@ -9,8 +9,10 @@ data class BookDoc(
     val language: List<String>?,
     val cover_i: Int?,
     val key: String?,
-    val isbn: List<String>? = null // Новый параметр для ISBN
+    val isbn: List<String>? = null,
+    var translatedTitle: String? = null
 )
+
 
 // Детальная информация о книге (из works/OLxxxx.json)
 data class BookDetails(

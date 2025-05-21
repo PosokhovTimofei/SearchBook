@@ -96,6 +96,8 @@ dependencies {
 
     implementation (libs.translate)
 
+    implementation (libs.kotlinx.coroutines.play.services)
+
 
 
 

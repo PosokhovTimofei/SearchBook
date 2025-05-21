@@ -10,6 +10,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 class BooksViewModel : ViewModel() {
     private val _books = mutableStateListOf<BookDoc>()
@@ -18,17 +20,36 @@ class BooksViewModel : ViewModel() {
     var isLoading by mutableStateOf(false)
         private set
 
+    // Кэш для переводов: ключ - оригинальный текст, значение - перевод
+    private val translationCache = mutableMapOf<String, String>()
+
+    // Обновленная функция перевода с кэшем
+    suspend fun translateTextCached(text: String): String {
+        if (translationCache.containsKey(text)) {
+            return translationCache[text] ?: text
+        }
+
+        val translated = translateTextSuspend(text)
+        translationCache[text] = translated
+        return translated
+    }
+
     fun searchBooks(category: String) {
         viewModelScope.launch {
             isLoading = true
             try {
-                val response = OpenLibraryClient.api.searchBooks(
-                    query = category
-                )
+                val response = OpenLibraryClient.api.searchBooks(query = category)
                 _books.clear()
                 response.docs?.let { docs ->
                     val filtered = docs.filter { it.language?.contains("rus") == true }
-                    _books.addAll(filtered)
+
+                    val translatedBooks = filtered.map { book ->
+                        // Используем кэшированный перевод
+                        val translatedTitle = translateTextCached(book.title ?: "")
+                        book.copy(translatedTitle = translatedTitle)
+                    }
+
+                    _books.addAll(translatedBooks)
                 }
             } catch (e: Exception) {
                 Log.e("BooksViewModel", "Error fetching books", e)
@@ -37,72 +58,115 @@ class BooksViewModel : ViewModel() {
             }
         }
     }
-}
 
-class BookDetailsViewModel : ViewModel() {
-    var bookDetails by mutableStateOf<BookDetails?>(null)
-        private set
 
-    var translatedDescription by mutableStateOf<String?>(null)
-        private set
+    class BookDetailsViewModel : ViewModel() {
+        var bookDetails by mutableStateOf<BookDetails?>(null)
+            private set
 
-    var isLoading by mutableStateOf(false)
-        private set
+        var translatedDescription by mutableStateOf<String?>(null)
+            private set
 
-    fun loadBookDetails(workId: String) {
-        viewModelScope.launch {
-            isLoading = true
-            try {
-                val result = OpenLibraryClient.api.getBookDetails(workId)
-                bookDetails = result
-                val descriptionText = when (val desc = result.description) {
-                    is String -> desc
-                    is Map<*, *> -> desc["value"] as? String ?: ""
-                    else -> ""
+        var translatedTitle by mutableStateOf<String?>(null)
+            private set
+
+        var isLoading by mutableStateOf(false)
+            private set
+
+        // Можно тоже добавить простой кэш для переводов здесь, если нужно
+        private val translationCache = mutableMapOf<String, String>()
+
+        fun loadBookDetails(workId: String) {
+            viewModelScope.launch {
+                isLoading = true
+                try {
+                    val result = OpenLibraryClient.api.getBookDetails(workId)
+                    bookDetails = result
+
+                    val descriptionText = when (val desc = result.description) {
+                        is String -> desc
+                        is Map<*, *> -> desc["value"] as? String ?: ""
+                        else -> ""
+                    }
+
+                    if (descriptionText.isNotBlank()) {
+                        translateText(descriptionText) { translated ->
+                            translatedDescription = translated
+                        }
+                    } else {
+                        translatedDescription = "Описание недоступно"
+                    }
+
+                    result.title?.let { title ->
+                        translateText(title) { translated ->
+                            translatedTitle = translated
+                        }
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("BookDetailsVM", "Ошибка загрузки деталей книги", e)
+                    translatedDescription = "Ошибка загрузки описания"
+                    translatedTitle = "Ошибка загрузки названия"
+                } finally {
+                    isLoading = false
                 }
-                if (descriptionText.isNotBlank()) {
-                    translateDescription(descriptionText)
-                } else {
-                    translatedDescription = "Описание недоступно"
-                }
-            } catch (e: Exception) {
-                Log.e("BookDetailsVM", "Error loading book details", e)
-                translatedDescription = "Ошибка загрузки описания"
-            } finally {
-                isLoading = false
             }
+        }
+
+        private fun translateText(text: String, onResult: (String) -> Unit) {
+            // Проверка кэша перед переводом
+            if (translationCache.containsKey(text)) {
+                onResult(translationCache[text] ?: text)
+                return
+            }
+
+            val options = com.google.mlkit.nl.translate.TranslatorOptions.Builder()
+                .setSourceLanguage(com.google.mlkit.nl.translate.TranslateLanguage.ENGLISH)
+                .setTargetLanguage(com.google.mlkit.nl.translate.TranslateLanguage.RUSSIAN)
+                .build()
+
+            val translator = com.google.mlkit.nl.translate.Translation.getClient(options)
+
+            translator.downloadModelIfNeeded()
+                .addOnSuccessListener {
+                    translator.translate(text)
+                        .addOnSuccessListener { translatedText ->
+                            translationCache[text] = translatedText
+                            onResult(translatedText)
+                        }
+                        .addOnFailureListener { e ->
+                            onResult("Ошибка перевода: ${e.localizedMessage}")
+                        }
+                }
+                .addOnFailureListener { e ->
+                    onResult("Ошибка загрузки модели: ${e.localizedMessage}")
+                }
         }
     }
 
-    private fun translateDescription(text: String) {
-        val options = com.google.mlkit.nl.translate.TranslatorOptions.Builder()
-            .setSourceLanguage(com.google.mlkit.nl.translate.TranslateLanguage.ENGLISH)
-            .setTargetLanguage(com.google.mlkit.nl.translate.TranslateLanguage.RUSSIAN)
-            .build()
+    // suspend версия перевода без кэша (внешне используем translateTextCached)
+    suspend fun translateTextSuspend(text: String): String {
+        return suspendCancellableCoroutine { cont ->
+            val options = com.google.mlkit.nl.translate.TranslatorOptions.Builder()
+                .setSourceLanguage(com.google.mlkit.nl.translate.TranslateLanguage.ENGLISH)
+                .setTargetLanguage(com.google.mlkit.nl.translate.TranslateLanguage.RUSSIAN)
+                .build()
 
-        val translator = com.google.mlkit.nl.translate.Translation.getClient(options)
+            val translator = com.google.mlkit.nl.translate.Translation.getClient(options)
 
-        translator.downloadModelIfNeeded()
-            .addOnSuccessListener {
-                translator.translate(text)
-                    .addOnSuccessListener { translatedText ->
-                        translatedDescription = translatedText
-                    }
-                    .addOnFailureListener { e ->
-                        translatedDescription = "Ошибка перевода: ${e.localizedMessage}"
-                    }
-            }
-            .addOnFailureListener { e ->
-                translatedDescription = "Ошибка загрузки модели: ${e.localizedMessage}"
-            }
+            translator.downloadModelIfNeeded()
+                .addOnSuccessListener {
+                    translator.translate(text)
+                        .addOnSuccessListener { translated ->
+                            cont.resume(translated)
+                        }
+                        .addOnFailureListener { e ->
+                            cont.resume("Ошибка перевода: ${e.localizedMessage}")
+                        }
+                }
+                .addOnFailureListener { e ->
+                    cont.resume("Ошибка загрузки модели: ${e.localizedMessage}")
+                }
+        }
     }
 }
-
-
-
-
-
-
-
-
-

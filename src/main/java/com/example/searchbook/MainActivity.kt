@@ -77,6 +77,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -85,6 +86,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import coil.compose.rememberAsyncImagePainter
 import com.example.searcbook.R
+import com.example.searchbook.BooksViewModel.BookDetailsViewModel
 import com.example.searchbook.ui.theme.SearchBookTheme
 
 
@@ -105,9 +107,32 @@ fun Navigation() {
     val authViewModel: AuthViewModel = viewModel()
     val booksViewModel: BooksViewModel = viewModel()
 
+    // Список экранов, на которых хотим показывать BottomNavigation
+    val bottomNavScreens = listOf(
+        "search",
+        "booksList/{category}",
+        "my_books",
+        "profile",
+        "details/{workId}"
+    )
+
+    // Получаем текущий маршрут
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(navController)
+            // Показываем только если текущий экран в списке bottomNavScreens
+            if (currentRoute != null && bottomNavScreens.any { routePattern ->
+                    // Обрабатываем параметризованные маршруты, чтобы сравнить только префикс
+                    if (routePattern.contains("{")) {
+                        currentRoute.startsWith(routePattern.substringBefore("{"))
+                    } else {
+                        currentRoute == routePattern
+                    }
+                }) {
+                BottomNavigationBar(navController)
+            }
         }
     ) { innerPadding ->
         NavHost(
@@ -144,6 +169,7 @@ fun Navigation() {
         }
     }
 }
+
 
 
 
@@ -622,9 +648,11 @@ fun BooksListScreen(category: String, viewModel: BooksViewModel, navController: 
         viewModel.searchBooks(category)
     }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
         Text("Категория: $category", style = MaterialTheme.typography.headlineSmall)
 
         if (isLoading) {
@@ -642,18 +670,17 @@ fun BooksListScreen(category: String, viewModel: BooksViewModel, navController: 
 }
 
 
+
 @Composable
 fun BookCard(book: BookDoc, navController: NavController) {
     val coverUrl = book.cover_i?.let {
         "https://covers.openlibrary.org/b/id/$it-L.jpg"
     }
 
-    // Переход по нажатию
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                // Используем ключ work_id, либо заглушку, если его нет
                 val workId = book.key?.removePrefix("/works/") ?: return@clickable
                 navController.navigate("details/$workId")
             }
@@ -665,23 +692,40 @@ fun BookCard(book: BookDoc, navController: NavController) {
                 contentDescription = "Обложка книги",
                 modifier = Modifier
                     .size(100.dp)
-                    .padding(end = 8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray)
             )
         }
 
-        Column {
-            Text(text = book.title ?: "Нет названия", style = MaterialTheme.typography.titleMedium)
-            Text(text = book.author_name?.joinToString(", ") ?: "Автор неизвестен", style = MaterialTheme.typography.bodySmall)
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            // Используем переведённое название, если есть
+            Text(
+                text = book.translatedTitle ?: book.title ?: "Нет названия",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = book.author_name?.joinToString(", ") ?: "Автор неизвестен",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+
             book.first_publish_year?.let {
-                Text(text = "Год: $it", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = "Год: $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
             }
         }
     }
 }
-
-
-
-
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
@@ -737,6 +781,7 @@ fun BookDetailsScreen(
     val book = viewModel.bookDetails
     val isLoading = viewModel.isLoading
     val translatedDescription = viewModel.translatedDescription
+    val translatedTitle = viewModel.translatedTitle
 
     LaunchedEffect(workId) {
         viewModel.loadBookDetails(workId)
@@ -757,7 +802,7 @@ fun BookDetailsScreen(
                     .fillMaxSize()
                     .background(Color.Black)
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState()) // Вот здесь добавлена прокрутка
+                    .verticalScroll(rememberScrollState()) // Добавлена прокрутка
             ) {
                 // Обложка
                 coverUrl?.let { url ->
@@ -774,18 +819,26 @@ fun BookDetailsScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Название
+                // Название книги (переведённое, если есть)
                 Text(
-                    text = it.title ?: "Без названия",
+                    text = translatedTitle ?: it.title ?: "Без названия",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                 )
 
-                // Автор
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Авторы — вытаскиваем имена из authorwrapper
+                val authorNames = it.authors?.mapNotNull { authorWrapper ->
+                    val authorMap = authorWrapper as? Map<*, *>
+                    val authorData = authorMap?.get("author") as? Map<*, *>
+                    authorData?.get("name") as? String
+                }
+
                 Text(
-                    text = it.authors?.joinToString(", ") ?: "Автор неизвестен",
+                    text = authorNames?.joinToString(", ") ?: "Автор неизвестен",
                     style = MaterialTheme.typography.bodyMedium.copy(color = Color.LightGray)
                 )
 
@@ -813,7 +866,7 @@ fun BookDetailsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Описание
+                // Описание книги (переведённое)
                 Text(
                     text = translatedDescription ?: "Описание загружается...",
                     style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
@@ -865,6 +918,7 @@ fun BookDetailsScreen(
         }
     }
 }
+
 
 @Composable
 fun StatItem(value: String, label: String) {
