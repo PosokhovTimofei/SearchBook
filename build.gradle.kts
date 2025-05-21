@@ -97,6 +97,8 @@ dependencies {
     implementation (libs.translate)
 
     implementation (libs.kotlinx.coroutines.play.services)
+    implementation (libs.androidx.lifecycle.viewmodel.ktx)
+
 
 
 

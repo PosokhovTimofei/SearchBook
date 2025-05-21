@@ -2,6 +2,7 @@ package com.example.searchbook
 
 import BookDetails
 import BookDoc
+import FavoriteBookRequest
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -12,16 +13,23 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.text.set
 
 class BooksViewModel : ViewModel() {
     private val _books = mutableStateListOf<BookDoc>()
     val books: List<BookDoc> = _books
+
+    private val repository = FavoritesRepository()
 
     var isLoading by mutableStateOf(false)
         private set
 
     // Кэш для переводов: ключ - оригинальный текст, значение - перевод
     private val translationCache = mutableMapOf<String, String>()
+
+    private val _favoriteBooks = mutableStateListOf<BookDoc>()
+    val favoriteBooks: List<BookDoc> get() = _favoriteBooks
+
 
     // Обновленная функция перевода с кэшем
     suspend fun translateTextCached(text: String): String {
@@ -169,4 +177,92 @@ class BooksViewModel : ViewModel() {
                 }
         }
     }
+
+    fun loadFavorites(userId: Int) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val booksFromDb = repository.getFavorites(userId)
+                _favoriteBooks.clear()
+                _favoriteBooks.addAll(booksFromDb)
+
+                // Обновляем _books — если книга есть в favorites, ставим isFavorite = true
+                val updatedBooks = _books.map { book ->
+                    if (booksFromDb.any { it.key == book.key }) {
+                        book.copy(isFavorite = true)
+                    } else {
+                        book
+                    }
+                }
+                _books.clear()
+                _books.addAll(updatedBooks)
+
+            } catch (e: Exception) {
+                Log.e("MyBooksViewModel", "Ошибка загрузки избранных книг", e)
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+
+    fun toggleFavorite(book: BookDoc) {
+        viewModelScope.launch {
+            try {
+                val updatedBook = book.copy(isFavorite = !book.isFavorite)
+
+                if (updatedBook.isFavorite) {
+                    repository.addToFavorites(updatedBook, 1)
+                    _favoriteBooks.add(updatedBook)
+                } else {
+                    repository.removeFromFavorites(updatedBook, 1)
+                    _favoriteBooks.removeAll { it.key == updatedBook.key }
+                }
+
+                val index = _books.indexOfFirst { it.key == book.key }
+                if (index != -1) {
+                    _books[index] = updatedBook
+                }
+            } catch (e: Exception) {
+                Log.e("BooksViewModel", "Ошибка при обновлении избранного", e)
+            }
+        }
+    }
 }
+
+    class FavoritesRepository {
+        private val api = BackendClient.api
+
+        suspend fun getFavorites(userId: Int): List<BookDoc> {
+            return api.getFavoriteBooks(userId)
+        }
+
+
+        suspend fun addToFavorites(book: BookDoc, userId: Int) {
+            val request = book.toRequest(userId)
+            api.addToFavorites(request)
+        }
+
+        suspend fun removeFromFavorites(book: BookDoc, userId: Int) {
+            val request = book.toRequest(userId)
+            api.removeFromFavorites(request)
+        }
+    }
+
+
+    fun BookDoc.toRequest(userId: Int): FavoriteBookRequest {
+        return FavoriteBookRequest(
+            key = this.key ?: "",
+            title = this.title,
+            author = this.author_name?.joinToString(", "),
+            coverId = this.cover_i,
+            userId = userId
+        )
+    }
+
+    object BackendClient {
+        val api: ApiService by lazy {
+            ApiService.create()
+        }
+    }
+

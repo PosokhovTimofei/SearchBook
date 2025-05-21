@@ -1,3 +1,5 @@
+import kotlinx.serialization.Serializable
+
 data class OpenLibraryResponse(
     val docs: List<BookDoc>?
 )
@@ -10,7 +12,8 @@ data class BookDoc(
     val cover_i: Int?,
     val key: String?,
     val isbn: List<String>? = null,
-    var translatedTitle: String? = null
+    var translatedTitle: String? = null,
+    var isFavorite: Boolean = false
 )
 
 
@@ -47,6 +50,16 @@ data class Excerpt(
 data class Link(
     val title: String?,
     val url: String?
+)
+
+
+
+data class FavoriteBookRequest(
+    val key: String,
+    val title: String?,
+    val author: String?,
+    val coverId: Int?,  // если нужно, иначе убери
+    val userId: Int
 )
 
 

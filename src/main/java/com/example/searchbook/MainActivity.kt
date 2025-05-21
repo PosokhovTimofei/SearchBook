@@ -16,6 +16,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -161,8 +163,12 @@ fun Navigation() {
                 BooksListScreen(category, booksViewModel, navController)
             }
             composable("my_books") {
-                MyBooksScreen(navController)
+                MyBooksScreen(
+                    navController = navController,
+                    booksViewModel = booksViewModel
+                )
             }
+
             composable("profile") {
                 ProfileScreen(navController)
             }
@@ -173,11 +179,6 @@ fun Navigation() {
         }
     }
 }
-
-
-
-
-
 
 
 @Composable
@@ -669,7 +670,10 @@ fun SearchScreen(
                         else -> {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(booksViewModel.books) { book ->
-                                    BookCard(book, navController)
+                                    BookCard(book, navController) { selectedBook ->
+                                        selectedBook.isFavorite = !selectedBook.isFavorite
+                                        booksViewModel.toggleFavorite(selectedBook)
+                                    }
                                 }
                             }
                         }
@@ -698,6 +702,7 @@ fun SearchScreen(
         }
     }
 }
+
 
 
 @Composable
@@ -736,12 +741,22 @@ fun CategoryCard(category: String, onClick: () -> Unit) {
 
 
 @Composable
-fun BooksListScreen(category: String, viewModel: BooksViewModel, navController: NavController) {
+fun BooksListScreen(
+    category: String,
+    viewModel: BooksViewModel,
+    navController: NavController
+) {
+    var searchQuery by remember { mutableStateOf("") }
     val books = viewModel.books
     val isLoading = viewModel.isLoading
 
-    LaunchedEffect(category) {
-        viewModel.searchBooks(category)
+    // Загружаем книги по категории или поисковому запросу
+    LaunchedEffect(category, searchQuery) {
+        if (searchQuery.isBlank()) {
+            viewModel.searchBooks(category)
+        } else {
+            viewModel.searchBooks(searchQuery)
+        }
     }
 
     Column(
@@ -749,7 +764,21 @@ fun BooksListScreen(category: String, viewModel: BooksViewModel, navController: 
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        // Сначала категория
         Text("Категория: $category", style = MaterialTheme.typography.headlineSmall)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Потом строка поиска
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Поиск книг...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -758,17 +787,19 @@ fun BooksListScreen(category: String, viewModel: BooksViewModel, navController: 
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(books) { book ->
-                    BookCard(book, navController)
+                    BookCard(book, navController) { selectedBook ->
+                        viewModel.toggleFavorite(selectedBook)
+                    }
                 }
             }
+
         }
     }
 }
 
 
-
 @Composable
-fun BookCard(book: BookDoc, navController: NavController) {
+fun BookCard(book: BookDoc, navController: NavController, onFavoriteClick: (BookDoc) -> Unit) {
     val coverUrl = book.cover_i?.let {
         "https://covers.openlibrary.org/b/id/$it-L.jpg"
     }
@@ -796,7 +827,6 @@ fun BookCard(book: BookDoc, navController: NavController) {
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            // Используем переведённое название, если есть
             Text(
                 text = book.translatedTitle ?: book.title ?: "Нет названия",
                 style = MaterialTheme.typography.titleMedium,
@@ -804,6 +834,7 @@ fun BookCard(book: BookDoc, navController: NavController) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
@@ -820,45 +851,61 @@ fun BookCard(book: BookDoc, navController: NavController) {
                 )
             }
         }
-    }
-}
 
-@Composable
-fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        BottomNavItem("Мои книги", "my_books", Icons.Default.Book),
-        BottomNavItem("Поиск", "search", Icons.Default.Search),
-        BottomNavItem("Профиль", "profile", Icons.Default.Person)
-    )
-
-    NavigationBar {
-        val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
-
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.title) },
-                label = { Text(item.title) },
-                selected = currentDestination == item.route,
-                onClick = {
-                    if (currentDestination != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo("search") { inclusive = false } // базовый маршрут
-                            launchSingleTop = true
-                        }
-                    }
-                }
+        IconButton(onClick = { onFavoriteClick(book) }) {
+            Icon(
+                imageVector = Icons.Default.Favorite,
+                contentDescription = "В избранное",
+                tint = if (book.isFavorite) Color.Red else Color.Gray
             )
         }
     }
 }
 
-
 @Composable
-fun MyBooksScreen(navController: NavController) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Мои книги")
+fun MyBooksScreen(
+    booksViewModel: BooksViewModel = viewModel(),
+    navController: NavController
+) {
+    // Используем snapshotFlow, чтобы Compose следил за изменениями списка
+    val favoriteBooks by remember {
+        derivedStateOf { booksViewModel.favoriteBooks }
+    }
+
+    val isLoading by remember { derivedStateOf { booksViewModel.isLoading } }
+
+    LaunchedEffect(Unit) {
+        booksViewModel.loadFavorites(userId = 1)
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else if (favoriteBooks.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = "Избранных книг нет", style = MaterialTheme.typography.bodyLarge)
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            items(favoriteBooks) { book ->
+                BookCard(book = book, navController = navController, onFavoriteClick = {
+                    booksViewModel.toggleFavorite(it)
+                })
+            }
+        }
     }
 }
+
+
+
+
+
+
 
 @Composable
 fun ProfileScreen(navController: NavController) {
@@ -1024,7 +1071,34 @@ fun StatItem(value: String, label: String) {
     }
 }
 
+@Composable
+fun BottomNavigationBar(navController: NavController) {
+    val items = listOf(
+        BottomNavItem("Мои книги", "my_books", Icons.Default.Book),
+        BottomNavItem("Поиск", "search", Icons.Default.Search),
+        BottomNavItem("Профиль", "profile", Icons.Default.Person)
+    )
 
+    NavigationBar {
+        val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
+
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = { Icon(item.icon, contentDescription = item.title) },
+                label = { Text(item.title) },
+                selected = currentDestination == item.route,
+                onClick = {
+                    if (currentDestination != item.route) {
+                        navController.navigate(item.route) {
+                            popUpTo("search") { inclusive = false } // базовый маршрут
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
 
 
 
