@@ -622,9 +622,7 @@ fun SearchScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        Scaffold(
-            containerColor = Color.Transparent
-        ) { padding ->
+        Scaffold(containerColor = Color.Transparent) { padding ->
             Column(
                 modifier = Modifier
                     .padding(padding)
@@ -670,10 +668,12 @@ fun SearchScreen(
                         }
                         else -> {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(booksViewModel.books) { book ->
-                                    BookCard(book, navController) { selectedBook ->
-                                        selectedBook.isFavorite = !selectedBook.isFavorite
-                                        booksViewModel.toggleFavorite(selectedBook)
+                                items(
+                                    items = booksViewModel.books,
+                                    key = { it.key ?: it.title ?: it.hashCode() }
+                                ) { book ->
+                                    BookCard(book, navController) {
+                                        booksViewModel.toggleFavorite(book)
                                     }
                                 }
                             }
@@ -703,6 +703,7 @@ fun SearchScreen(
         }
     }
 }
+
 
 
 
