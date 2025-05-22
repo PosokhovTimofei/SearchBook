@@ -53,12 +53,12 @@ data class Link(
 )
 
 
-
+@Serializable
 data class FavoriteBookRequest(
     val key: String,
     val title: String?,
     val author: String?,
-    val coverId: Int?,
+    val cover_i: Int?,
     val userId: Int
 )
 

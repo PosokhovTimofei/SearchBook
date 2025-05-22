@@ -301,7 +301,7 @@ class BooksViewModel : ViewModel() {
             key = this.key ?: "",
             title = this.title,
             author = this.author_name?.joinToString(", "),
-            coverId = this.cover_i,
+            cover_i = this.cover_i,
             userId = userId
         )
     }
