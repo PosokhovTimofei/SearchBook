@@ -41,6 +41,7 @@ import androidx.compose.material.TextButton
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Description
@@ -127,9 +128,7 @@ fun Navigation() {
 
     Scaffold(
         bottomBar = {
-            // Показываем только если текущий экран в списке bottomNavScreens
             if (currentRoute != null && bottomNavScreens.any { routePattern ->
-                    // Обрабатываем параметризованные маршруты, чтобы сравнить только префикс
                     if (routePattern.contains("{")) {
                         currentRoute.startsWith(routePattern.substringBefore("{"))
                     } else {
@@ -155,24 +154,20 @@ fun Navigation() {
                 RegisterScreen(navController, authViewModel)
             }
             composable("search") {
-                val booksViewModel: BooksViewModel = viewModel()
                 SearchScreen(navController, booksViewModel)
             }
-
             composable("booksList/{category}") { backStackEntry ->
                 val category = backStackEntry.arguments?.getString("category") ?: ""
                 BooksListScreen(category, booksViewModel, navController)
             }
             composable("my_books") {
-                MyBooksScreen(
-                    navController = navController,
-                    booksViewModel = booksViewModel
-                )
+                MyBooksScreen(navController = navController, booksViewModel = booksViewModel)
+            }
+            composable("profile") {
+                ProfileScreen(authViewModel, navController)
             }
 
-            composable("profile") {
-                ProfileScreen(navController)
-            }
+
             composable("details/{workId}") { backStackEntry ->
                 val workId = backStackEntry.arguments?.getString("workId") ?: ""
                 BookDetailsScreen(workId = workId, navController = navController)
@@ -920,11 +915,37 @@ fun MyBooksScreen(
 
 
 @Composable
-fun ProfileScreen(navController: NavController) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Профиль")
+fun ProfileScreen(authViewModel: AuthViewModel, navController: NavController) {
+    val username by authViewModel.currentUsername.observeAsState("Пользователь")
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Профиль", style = MaterialTheme.typography.headlineMedium)
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Icon(
+            imageVector = Icons.Default.AccountCircle,
+            contentDescription = null,
+            modifier = Modifier.size(100.dp),
+            tint = Color.Gray
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(text = "Имя пользователя:", fontWeight = FontWeight.Bold)
+        Text(text = username.toString(), fontSize = 20.sp)
     }
 }
+
+
+
+
 
 
 @Composable

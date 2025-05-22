@@ -15,6 +15,10 @@ class AuthViewModel : ViewModel() {
     private val _loginResult = MutableLiveData<Result<String>>()
     val loginResult: LiveData<Result<String>> = _loginResult
 
+    // Добавлено: для хранения имени пользователя
+    private val _currentUsername = MutableLiveData<String?>()
+    val currentUsername: LiveData<String?> = _currentUsername
+
     fun registerUser(username: String, email: String, password: String) {
         viewModelScope.launch {
             try {
@@ -30,13 +34,13 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-
     fun loginUser(username: String, password: String) {
         viewModelScope.launch {
             try {
                 val response = apiService.loginUser(UserLoginRequest(username, password))
                 if (response.isSuccessful) {
                     _loginResult.value = Result.success(response.body()!!)
+                    _currentUsername.value = username // Сохраняем имя пользователя
                 } else {
                     _loginResult.value = Result.failure(Exception(response.errorBody()?.string()))
                 }
@@ -45,5 +49,4 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
-
 }
