@@ -47,14 +47,27 @@ class BooksViewModel : ViewModel() {
             isLoading = true
             try {
                 val response = OpenLibraryClient.api.searchBooks(query = category)
-                val favoriteBooks = repository.getFavorites(userId = 1) // Загружаем избранное
+                val favoriteBooks = repository.getFavorites(userId = 1)
 
                 _books.clear()
-                response.docs?.filter { it.language?.contains("rus") == true }?.forEach { book ->
-                    // Проверяем, есть ли книга в избранном
-                    val isFavorite = favoriteBooks.any { favorite -> favorite.key == book.key }
-                    _books.add(book.copy(isFavorite = isFavorite))
-                }
+
+                response.docs
+                    ?.filter { it.language?.contains("rus") == true }
+                    ?.forEach { book ->
+                        val isFavorite = favoriteBooks.any { favorite -> favorite.key == book.key }
+
+                        // Перевод названия книги
+                        val translatedTitle = book.title?.let { translateTextCached(it) }
+
+                        // Сохраняем перевод в новый объект BookDoc
+                        val updatedBook = book.copy(
+                            isFavorite = isFavorite,
+                            translatedTitle = translatedTitle
+                        )
+
+                        _books.add(updatedBook)
+                    }
+
             } catch (e: Exception) {
                 Log.e("BooksViewModel", "Ошибка загрузки книг", e)
             } finally {
@@ -62,6 +75,7 @@ class BooksViewModel : ViewModel() {
             }
         }
     }
+
 
 
     class BookDetailsViewModel : ViewModel() {
@@ -299,7 +313,7 @@ class BooksViewModel : ViewModel() {
     fun BookDoc.toRequest(userId: Int): FavoriteBookRequest {
         return FavoriteBookRequest(
             key = this.key ?: "",
-            title = this.title,
+            title = this.translatedTitle ?: this.title ?: "",
             author = this.author_name?.joinToString(", "),
             cover_i = this.cover_i,
             userId = userId

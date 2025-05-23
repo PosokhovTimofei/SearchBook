@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -37,6 +38,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
+import androidx.compose.material.Switch
 import androidx.compose.material.TextButton
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.icons.Icons
@@ -97,18 +99,23 @@ import kotlinx.coroutines.delay
 
 
 class MainActivity : ComponentActivity() {
+    private val themeViewModel: ThemeViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SearchBookTheme {
-                Navigation()
+            val isDarkTheme by themeViewModel.isDarkTheme
+
+            SearchBookTheme(darkTheme = isDarkTheme) {
+                // Передаём themeViewModel в Navigation (или куда нужно)
+                Navigation(themeViewModel)
             }
         }
     }
 }
 
 @Composable
-fun Navigation() {
+fun Navigation(themeViewModel: ThemeViewModel) {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val booksViewModel: BooksViewModel = viewModel()
@@ -164,7 +171,7 @@ fun Navigation() {
                 MyBooksScreen(navController = navController, booksViewModel = booksViewModel)
             }
             composable("profile") {
-                ProfileScreen(authViewModel, navController)
+                ProfileScreen(authViewModel, navController, themeViewModel)
             }
 
 
@@ -915,8 +922,13 @@ fun MyBooksScreen(
 
 
 @Composable
-fun ProfileScreen(authViewModel: AuthViewModel, navController: NavController) {
+fun ProfileScreen(
+    authViewModel: AuthViewModel,
+    navController: NavController,
+    themeViewModel: ThemeViewModel
+) {
     val username by authViewModel.currentUsername.observeAsState("Пользователь")
+    val isDarkTheme by themeViewModel.isDarkTheme
 
     Column(
         modifier = Modifier
@@ -933,15 +945,28 @@ fun ProfileScreen(authViewModel: AuthViewModel, navController: NavController) {
             imageVector = Icons.Default.AccountCircle,
             contentDescription = null,
             modifier = Modifier.size(100.dp),
-            tint = Color.Gray
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(text = "Имя пользователя:", fontWeight = FontWeight.Bold)
         Text(text = username.toString(), fontSize = 20.sp)
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Тёмная тема", modifier = Modifier.weight(1f))
+            Switch(
+                checked = isDarkTheme,
+                onCheckedChange = { themeViewModel.toggleTheme() }
+            )
+        }
     }
 }
+
 
 
 
