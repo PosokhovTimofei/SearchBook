@@ -606,7 +606,7 @@ fun SearchScreen(
     var searchQuery by remember { mutableStateOf("") }
 
     val categories = listOf(
-        "Fiction", "Science", "History", "Art", "Fantasy", "Technology", "Education"
+        "Художественная", "Наука", "История", "Искусство", "Фантастика", "Технология", "Образование"
     )
 
     LaunchedEffect(searchQuery) {
@@ -617,12 +617,12 @@ fun SearchScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.background),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+//        Image(
+//            painter = painterResource(id = R.drawable.background),
+//            contentDescription = null,
+//            contentScale = ContentScale.Crop,
+//            modifier = Modifier.fillMaxSize()
+//        )
 
         Scaffold(containerColor = Color.Transparent) { padding ->
             Column(
@@ -903,6 +903,13 @@ fun MyBooksScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(16.dp)
         ) {
+            item {
+                Text(
+                    text = "Избранное",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
             items(
                 items = favoriteBooks,
                 key = { it.key ?: it.title ?: it.hashCode().toString() }
