@@ -1,6 +1,6 @@
 package com.example.searchbook.presentation.view.search
 
-import BookDoc
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.searchbook.data.model.BookDoc
 
 @Composable
 fun BookCard(

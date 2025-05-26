@@ -1,22 +1,9 @@
+import com.example.searchbook.data.model.BookDoc
 import kotlinx.serialization.Serializable
 
 data class OpenLibraryResponse(
     val docs: List<BookDoc>?
 )
-
-data class BookDoc(
-    val title: String?,
-    val author_name: List<String>?,
-    val first_publish_year: Int?,
-    val language: List<String>?,
-    val cover_i: Int?,
-    val key: String?,
-    val isbn: List<String>? = null,
-    var translatedTitle: String? = null,
-    var isFavorite: Boolean = false
-)
-
-
 // Детальная информация о книге (из works/OLxxxx.json)
 data class BookDetails(
     val title: String?,
