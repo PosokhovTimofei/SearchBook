@@ -36,9 +36,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.searchbook.BooksViewModel
-import com.example.searchbook.CategoryCard
-import com.example.searchbook.EmptyResults
-import com.example.searchbook.LoadingIndicator
+
+
+
+import com.example.searchbook.presentation.view.components.CategoryCard
+import com.example.searchbook.presentation.view.components.EmptyResults
+import com.example.searchbook.presentation.view.components.LoadingIndicator
 import kotlinx.coroutines.delay
 
 @Composable

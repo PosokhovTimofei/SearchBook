@@ -24,7 +24,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.searcbook.R
-import com.example.searchbook.AnimatedButton
+import com.example.searchbook.presentation.view.components.AnimatedButton
+
 
 @Composable
 fun GreetingScreen(navController: NavController) {

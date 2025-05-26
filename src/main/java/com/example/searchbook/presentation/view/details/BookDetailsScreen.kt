@@ -37,7 +37,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.searchbook.BooksViewModel.BookDetailsViewModel
-import com.example.searchbook.StatItem
+import com.example.searchbook.presentation.view.components.StatItem
+
 
 @Composable
 fun BookDetailsScreen(
