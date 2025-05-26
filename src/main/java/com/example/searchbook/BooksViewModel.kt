@@ -1,6 +1,6 @@
 package com.example.searchbook
 
-import BookDetails
+
 
 import FavoriteBookRequest
 import android.util.Log
@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.searchbook.data.model.BookDetails
 import com.example.searchbook.data.model.BookDoc
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine

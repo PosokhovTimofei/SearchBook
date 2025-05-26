@@ -1,7 +1,8 @@
 package com.example.searchbook
 
-import BookDetails
+
 import OpenLibraryResponse
+import com.example.searchbook.data.model.BookDetails
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
