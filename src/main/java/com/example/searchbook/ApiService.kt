@@ -1,8 +1,9 @@
 package com.example.searchbook
 
 
-import FavoriteBookRequest
+
 import com.example.searchbook.data.model.BookDoc
+import com.example.searchbook.data.model.FavoriteBookRequest
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response

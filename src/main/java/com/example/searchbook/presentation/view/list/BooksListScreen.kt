@@ -27,7 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.searchbook.BooksViewModel
+import com.example.searchbook.data.viewmodel.BooksViewModel
+
 import com.example.searchbook.presentation.view.search.BookCard
 
 @Composable

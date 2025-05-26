@@ -36,7 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.searchbook.BooksViewModel.BookDetailsViewModel
+import com.example.searchbook.data.viewmodel.BookDetailsViewModel
+
 import com.example.searchbook.presentation.view.components.StatItem
 
 

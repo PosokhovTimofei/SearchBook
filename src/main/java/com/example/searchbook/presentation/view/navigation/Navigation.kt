@@ -11,8 +11,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.searchbook.AuthViewModel
-import com.example.searchbook.BooksViewModel
+
 import com.example.searchbook.ThemeViewModel
+import com.example.searchbook.data.viewmodel.BooksViewModel
 import com.example.searchbook.presentation.view.bars.BottomNavigationBar
 import com.example.searchbook.presentation.view.details.BookDetailsScreen
 import com.example.searchbook.presentation.view.favorite.MyBooksScreen
